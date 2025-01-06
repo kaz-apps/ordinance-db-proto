@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getOrdinances } from '@/app/actions/ordinanceActions'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 
 interface Ordinance {
   id: number
@@ -19,6 +20,9 @@ interface Ordinance {
   additional_reference_url: string | null
 }
 
+type SortField = 'id' | 'prefecture' | 'city' | 'department' | 'category' | 'name'
+type SortOrder = 'asc' | 'desc'
+
 export default function Ordinances() {
   const [ordinances, setOrdinances] = useState<Ordinance[]>([])
   const [filteredOrdinances, setFilteredOrdinances] = useState<Ordinance[]>([])
@@ -27,6 +31,8 @@ export default function Ordinances() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState<string>('')
+  const [sortField, setSortField] = useState<SortField>('id')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const router = useRouter()
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export default function Ordinances() {
 
   useEffect(() => {
     filterOrdinances()
-  }, [ordinances, selectedDepartment, selectedCategory, searchTerm])
+  }, [ordinances, selectedDepartment, selectedCategory, searchTerm, sortField, sortOrder])
 
   async function fetchOrdinances() {
     try {
@@ -47,6 +53,15 @@ export default function Ordinances() {
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Error fetching ordinances:', error)
+    }
+  }
+
+  function handleSort(field: SortField) {
+    if (field === sortField) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
     }
   }
 
@@ -68,6 +83,25 @@ export default function Ordinances() {
         ord.city.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
+
+    // ソート処理
+    filtered = [...filtered].sort((a, b) => {
+      const aValue = a[sortField]
+      const bValue = b[sortField]
+      
+      if (aValue === null) return sortOrder === 'asc' ? -1 : 1
+      if (bValue === null) return sortOrder === 'asc' ? 1 : -1
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc'
+          ? aValue.localeCompare(bValue, 'ja')
+          : bValue.localeCompare(aValue, 'ja')
+      }
+      
+      return sortOrder === 'asc'
+        ? (aValue < bValue ? -1 : 1)
+        : (bValue < aValue ? -1 : 1)
+    })
 
     setFilteredOrdinances(filtered)
   }
@@ -99,6 +133,11 @@ export default function Ordinances() {
       link.click()
       document.body.removeChild(link)
     }
+  }
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (field !== sortField) return null
+    return sortOrder === 'asc' ? <ChevronUp className="inline w-4 h-4" /> : <ChevronDown className="inline w-4 h-4" />
   }
 
   return (
@@ -142,12 +181,42 @@ export default function Ordinances() {
           <table className="min-w-full bg-white border border-gray-300">
             <thead>
               <tr>
-                <th className="px-4 py-2 border-b">ID</th>
-                <th className="px-4 py-2 border-b">都道府県</th>
-                <th className="px-4 py-2 border-b">市区町村</th>
-                <th className="px-4 py-2 border-b">協議先区分</th>
-                <th className="px-4 py-2 border-b">カテゴリ</th>
-                <th className="px-4 py-2 border-b">法規制/条例名称</th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('id')}
+                >
+                  ID <SortIcon field="id" />
+                </th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('prefecture')}
+                >
+                  都道府県 <SortIcon field="prefecture" />
+                </th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('city')}
+                >
+                  市区町村 <SortIcon field="city" />
+                </th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('department')}
+                >
+                  協議先区分 <SortIcon field="department" />
+                </th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('category')}
+                >
+                  カテゴリ <SortIcon field="category" />
+                </th>
+                <th 
+                  className="px-4 py-2 border-b cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSort('name')}
+                >
+                  法規制/条例名称 <SortIcon field="name" />
+                </th>
                 <th className="px-4 py-2 border-b">参照元 URL</th>
               </tr>
             </thead>
