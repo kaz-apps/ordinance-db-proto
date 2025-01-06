@@ -30,40 +30,64 @@ export default function Navigation() {
   }
 
   return (
-    <nav className="bg-gray-800 text-white p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold">
+    <header className="bg-primary border-b border-border">
+      <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link 
+          href="/" 
+          className="text-xl font-bold text-white hover:text-background transition-colors"
+        >
           条例DB
         </Link>
-        <div>
+        <div className="flex items-center space-x-6">
           {session ? (
             <>
-              <Link href="/ordinances" className="mr-4">
+              <Link 
+                href="/ordinances" 
+                className="text-white hover:text-background transition-colors"
+              >
                 条例一覧
               </Link>
-              <Link href="/mypage" className="mr-4">
+              <Link 
+                href="/mypage" 
+                className="text-white hover:text-background transition-colors"
+              >
                 マイページ
               </Link>
-              <Link href="/checkout" className="mr-4">
+              <Link 
+                href="/checkout" 
+                className="text-white hover:text-background transition-colors"
+              >
                 プラン変更
               </Link>
-              <Button onClick={handleSignOut} variant="outline">
+              <Button 
+                onClick={handleSignOut} 
+                variant="outline"
+                className="border-2 bg-white text-primary border-primary hover:bg-primary hover:text-white hover:border-2 hover:border-white transition-all"
+              >
                 ログアウト
               </Button>
             </>
           ) : (
             <>
-              <Link href="/login" className="mr-4">
+              <Link 
+                href="/login" 
+                className="text-white hover:text-background transition-colors"
+              >
                 ログイン
               </Link>
-              <Link href="/register" className="mr-4">
-                会員登録
+              <Link href="/register">
+                <Button 
+                  variant="default"
+                  className="border-2 bg-white text-primary border-primary hover:bg-primary hover:text-white hover:border-2 hover:border-white transition-all"
+                >
+                  会員登録
+                </Button>
               </Link>
             </>
           )}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   )
 }
 
