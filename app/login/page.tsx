@@ -8,16 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { supabase } from '@/app/utils/supabase'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -25,8 +25,9 @@ export default function Login() {
     })
 
     if (error) {
-      setError(error.message)
+      showSnackbar(error.message, 'error')
     } else {
+      showSnackbar('ログインしました', 'success')
       router.push('/ordinances')
     }
   }
@@ -74,7 +75,6 @@ export default function Login() {
                   パスワードを忘れた場合
                 </Link>
               </div>
-              {error && <p className="text-red-500 text-center">{error}</p>}
             </CardFooter>
           </form>
         </Card>

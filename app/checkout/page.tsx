@@ -6,20 +6,30 @@ import Navigation from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 export default function Checkout() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    // Here you would typically call your Stripe payment processing function
-    // For this dummy implementation, we'll just simulate a delay
-    setTimeout(() => {
-      setLoading(false)
+    showSnackbar('決済処理を開始します...', 'info')
+
+    try {
+      // Here you would typically call your Stripe payment processing function
+      // For this dummy implementation, we'll just simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      showSnackbar('有料プランへの変更が完了しました', 'success')
       router.push('/mypage')
-    }, 2000)
+    } catch (error) {
+      showSnackbar('決済処理に失敗しました。もう一度お試しください。', 'error')
+      console.error('Payment error:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

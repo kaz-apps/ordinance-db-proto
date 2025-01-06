@@ -7,17 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { supabase } from '@/app/utils/supabase'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setMessage('')
-    setError('')
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -25,13 +23,13 @@ export default function ResetPassword() {
       })
 
       if (error) {
-        setError('パスワードリセットメールの送信に失敗しました。')
+        showSnackbar('パスワードリセットメールの送信に失敗しました。', 'error')
         console.error('Password reset error:', error)
       } else {
-        setMessage('パスワードリセットメールを送信しました。メールをご確認ください。')
+        showSnackbar('パスワードリセットメールを送信しました。メールをご確認ください。', 'success')
       }
     } catch (error) {
-      setError('予期せぬエラーが発生しました。')
+      showSnackbar('予期せぬエラーが発生しました。', 'error')
       console.error('Password reset error:', error)
     }
   }
@@ -67,8 +65,6 @@ export default function ResetPassword() {
               <Button type="submit" className="w-full">パスワードリセットメールを送信</Button>
             </CardFooter>
           </form>
-          {message && <p className="text-green-600 mt-4 text-center">{message}</p>}
-          {error && <p className="text-red-600 mt-4 text-center">{error}</p>}
         </Card>
       </div>
     </main>

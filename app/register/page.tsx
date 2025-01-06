@@ -8,23 +8,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/app/utils/supabase'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setMessage(null)
 
     if (!termsAccepted || !privacyAccepted) {
-      setError('利用規約とプライバシーポリシーに同意する必要があります。')
+      showSnackbar('利用規約とプライバシーポリシーに同意する必要があります。', 'error')
       return
     }
 
@@ -37,9 +35,9 @@ export default function Register() {
     })
 
     if (error) {
-      setError(error.message)
+      showSnackbar(error.message, 'error')
     } else {
-      setMessage('確認メールを送信しました。メールをご確認ください。')
+      showSnackbar('確認メールを送信しました。メールをご確認ください。', 'success')
     }
   }
 
@@ -93,8 +91,6 @@ export default function Register() {
               </label>
             </div>
           </div>
-          {error && <p className="text-red-500 mb-4">{error}</p>}
-          {message && <p className="text-green-500 mb-4">{message}</p>}
           <Button type="submit">登録</Button>
         </form>
       </div>

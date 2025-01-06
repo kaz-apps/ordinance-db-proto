@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { supabase } from '@/app/utils/supabase'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 function UpdatePasswordForm() {
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     const token = searchParams.get('token')
@@ -26,21 +26,19 @@ function UpdatePasswordForm() {
       }).then(({ error }) => {
         if (error) {
           console.error('Error verifying token:', error)
-          setError('無効なトークンです。パスワードリセットを再度お試しください。')
+          showSnackbar('無効なトークンです。パスワードリセットを再度お試しください。', 'error')
         }
       })
     } else {
-      setError('無効なリンクです。パスワードリセットを再度お試しください。')
+      showSnackbar('無効なリンクです。パスワードリセットを再度お試しください。', 'error')
     }
-  }, [searchParams])
+  }, [searchParams, showSnackbar])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setMessage('')
-    setError('')
 
     if (password.length < 6) {
-      setError('パスワードは6文字以上で入力してください。')
+      showSnackbar('パスワードは6文字以上で入力してください。', 'error')
       return
     }
 
@@ -48,14 +46,14 @@ function UpdatePasswordForm() {
       const { error } = await supabase.auth.updateUser({ password })
 
       if (error) {
-        setError('パスワードの更新に失敗しました。')
+        showSnackbar('パスワードの更新に失敗しました。', 'error')
         console.error('Password update error:', error)
       } else {
-        setMessage('パスワードが正常に更新されました。ログインページに移動します。')
+        showSnackbar('パスワードが正常に更新されました。ログインページに移動します。', 'success')
         setTimeout(() => router.push('/login'), 3000)
       }
     } catch (error) {
-      setError('予期せぬエラーが発生しました。')
+      showSnackbar('予期せぬエラーが発生しました。', 'error')
       console.error('Password update error:', error)
     }
   }
@@ -92,8 +90,6 @@ function UpdatePasswordForm() {
           <Button type="submit" className="w-full">パスワードを更新</Button>
         </CardFooter>
       </form>
-      {message && <p className="text-green-600 mt-4 text-center">{message}</p>}
-      {error && <p className="text-red-600 mt-4 text-center">{error}</p>}
     </Card>
   )
 }

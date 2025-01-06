@@ -7,12 +7,13 @@ import Navigation from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
 import { supabase, type Profile } from '@/app/utils/supabase'
 import { getUserProfile, updateUserPlan } from '@/app/actions/profileActions'
+import { useSnackbar } from '@/contexts/SnackbarContext'
 
 export default function MyPage() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,7 +47,7 @@ export default function MyPage() {
       }
     } catch (error) {
       console.error('ユーザープロファイルの取得エラー:', error)
-      setError('プロファイル情報の取得に失敗しました')
+      showSnackbar('プロファイル情報の取得に失敗しました', 'error')
     }
   }
 
@@ -58,16 +59,18 @@ export default function MyPage() {
       const updatedProfile = await updateUserPlan(session.user.id, newPlan)
       if (updatedProfile) {
         setProfile(updatedProfile)
-        setError(null)
         if (updatedProfile.plan === 'premium') {
+          showSnackbar('有料プランへの変更を開始します', 'info')
           router.push('/checkout')
+        } else {
+          showSnackbar('無料プランに変更しました', 'success')
         }
       } else {
         throw new Error('プランの更新に失敗しました')
       }
     } catch (error) {
       console.error('プランの更新エラー:', error)
-      setError(error instanceof Error ? error.message : 'プランの更新に失敗しました')
+      showSnackbar(error instanceof Error ? error.message : 'プランの更新に失敗しました', 'error')
     }
   }
 
@@ -87,7 +90,6 @@ export default function MyPage() {
         <Button onClick={handleChangePlan} className="mb-4">
           {profile.plan === 'premium' ? '無料プランに変更' : '有料プランに変更'}
         </Button>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
         <div className="mt-4">
           <Link href="/reset-password" className="text-blue-600 hover:underline">
             パスワードを忘れた場合
