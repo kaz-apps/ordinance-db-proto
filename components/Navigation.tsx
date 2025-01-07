@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/app/utils/supabase'
+import { useSnackbar } from "@/contexts/SnackbarContext"
 
 export default function Navigation() {
   const [session, setSession] = useState<any>(null)
   const router = useRouter()
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -25,8 +27,12 @@ export default function Navigation() {
   }, [])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      await supabase.auth.signOut()
+      showSnackbar("ログアウトしました", "success")
+    } catch (error) {
+      showSnackbar("ログアウトに失敗しました", "error")
+    }
   }
 
   return (
