@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
 import { useSnackbar } from '@/contexts/SnackbarContext'
+import { supabase } from '@/app/utils/supabase'
 
 export default function Checkout() {
   const [loading, setLoading] = useState(false)
@@ -19,11 +20,15 @@ export default function Checkout() {
     showSnackbar('決済処理を開始します...', 'info')
 
     try {
-      // Here you would typically call your Stripe payment processing function
-      // For this dummy implementation, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // 支払い処理が成功したら、プランを更新
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        throw new Error('ユーザーセッションが見つかりません')
+      }
+
+      // ここでは支払い処理のみを行い、プランの更新はマイページで行う
       showSnackbar('有料プランへの変更が完了しました', 'success')
-      router.push('/mypage')
+      router.push('/mypage?checkout=success')
     } catch (error) {
       showSnackbar('決済処理に失敗しました。もう一度お試しください。', 'error')
       console.error('Payment error:', error)

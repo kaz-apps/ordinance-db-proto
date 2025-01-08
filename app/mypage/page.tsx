@@ -8,20 +8,22 @@ import { Button } from '@/components/ui/button'
 import { supabase, type Profile } from '@/app/utils/supabase'
 import { getUserProfile, updateUserPlan } from '@/app/actions/profileActions'
 import { useSnackbar } from '@/contexts/SnackbarContext'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export default function MyPage() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const router = useRouter()
   const { showSnackbar } = useSnackbar()
 
+  // セッション管理
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.push('/login')
       } else {
         setSession(session)
-        fetchUserProfile(session.user.id)
       }
     })
 
@@ -31,46 +33,103 @@ export default function MyPage() {
       setSession(session)
       if (!session) {
         router.push('/login')
-      } else {
-        fetchUserProfile(session.user.id)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [router])
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const userProfile = await getUserProfile(userId)
-      if (userProfile) {
-        setProfile(userProfile)
+  // プロファイル取得
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    const fetchProfile = async () => {
+      try {
+        const userProfile = await getUserProfile(session.user.id)
+        if (userProfile) {
+          console.log('Fetched profile:', userProfile)
+          setProfile(userProfile)
+        }
+      } catch (error) {
+        console.error('Profile fetch error:', error)
+        showSnackbar('プロファイル情報の取得に失敗しました', 'error')
       }
-    } catch (error) {
-      console.error('ユーザープロファイルの取得エラー:', error)
-      showSnackbar('プロファイル情報の取得に失敗しました', 'error')
+    }
+
+    fetchProfile()
+
+    // 定期的な更新
+    const interval = setInterval(fetchProfile, 2000)
+    return () => clearInterval(interval)
+  }, [session?.user?.id, showSnackbar])
+
+  // URLのクエリパラメータを監視して、チェックアウト完了後の処理を行う
+  useEffect(() => {
+    const checkoutSuccess = new URLSearchParams(window.location.search).get('checkout') === 'success'
+    if (checkoutSuccess && session?.user?.id) {
+      const updateToPremium = async () => {
+        try {
+          const updatedProfile = await updateUserPlan(session.user.id, 'premium')
+          console.log('Premium update result:', updatedProfile)
+          
+          if (updatedProfile) {
+            setProfile(updatedProfile)
+            showSnackbar('有料プランに変更しました', 'success')
+            
+            // 確実に最新のデータを取得
+            const refreshedProfile = await getUserProfile(session.user.id)
+            if (refreshedProfile) {
+              setProfile(refreshedProfile)
+            }
+          }
+          // クエリパラメータを削除
+          window.history.replaceState({}, '', window.location.pathname)
+        } catch (error) {
+          console.error('Premium update error:', error)
+          showSnackbar('プランの更新に失敗しました', 'error')
+        }
+      }
+      updateToPremium()
+    }
+  }, [session?.user?.id, showSnackbar])
+
+  const handleChangePlan = async () => {
+    if (!session?.user?.id || !profile) return
+
+    const newPlan = profile.plan === 'free' ? 'premium' : 'free'
+    if (newPlan === 'premium') {
+      showSnackbar('有料プランへの変更を開始します', 'info')
+      router.push('/checkout')
+    } else {
+      setShowConfirmDialog(true)
     }
   }
 
-  const handleChangePlan = async () => {
-    if (!session || !profile) return
+  const handleConfirmDowngrade = async () => {
+    if (!session?.user?.id) {
+      showSnackbar('セッションが見つかりません', 'error')
+      return
+    }
 
-    const newPlan = profile.plan === 'free' ? 'premium' : 'free'
+    setShowConfirmDialog(false)
+
     try {
-      const updatedProfile = await updateUserPlan(session.user.id, newPlan)
+      const updatedProfile = await updateUserPlan(session.user.id, 'free')
+      console.log('Plan update result:', updatedProfile)
+      
       if (updatedProfile) {
         setProfile(updatedProfile)
-        if (updatedProfile.plan === 'premium') {
-          showSnackbar('有料プランへの変更を開始します', 'info')
-          router.push('/checkout')
-        } else {
-          showSnackbar('無料プランに変更しました', 'success')
+        showSnackbar('無料プランに変更しました', 'success')
+        
+        // 確実に最新のデータを取得
+        const refreshedProfile = await getUserProfile(session.user.id)
+        if (refreshedProfile) {
+          setProfile(refreshedProfile)
         }
-      } else {
-        throw new Error('プランの更新に失敗しました')
       }
     } catch (error) {
-      console.error('プランの更新エラー:', error)
-      showSnackbar(error instanceof Error ? error.message : 'プランの更新に失敗しました', 'error')
+      console.error('Plan update error:', error)
+      showSnackbar('プランの更新に失敗しました', 'error')
     }
   }
 
@@ -96,7 +155,18 @@ export default function MyPage() {
           </Link>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmDowngrade}
+        title="無料プランへの変更確認"
+        description="無料プランに変更すると、有料プランの機能が使えなくなります。本当に変更しますか？"
+        confirmText="変更する"
+        cancelText="キャンセル"
+      />
     </main>
   )
 }
+
 

@@ -14,16 +14,21 @@ if (!supabaseKey) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEYが設定されていません')
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
+// サーバーサイドでのSupabaseクライアント
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
+    persistSession: false,
+    detectSessionInUrl: false
+  },
+  db: {
+    schema: 'public'
   }
 })
 
 export async function getUserProfile(userId: string): Promise<Profile | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -43,22 +48,57 @@ export async function getUserProfile(userId: string): Promise<Profile | null> {
 
 export async function updateUserPlan(userId: string, plan: 'free' | 'premium'): Promise<Profile | null> {
   try {
-    const { data, error } = await supabase
+    if (!userId) {
+      throw new Error('ユーザーIDが指定されていません')
+    }
+
+    // まず更新を実行
+    const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ plan })
       .eq('id', userId)
-      .select()
-      .single()
 
-    if (error) {
-      console.error('ユーザープランの更新エラー:', error)
-      return null
+    if (updateError) {
+      console.error('Update error:', updateError)
+      throw updateError
     }
 
-    return data
+    // 更新の確認を最大5回試行
+    let retryCount = 0
+    const maxRetries = 5
+    const retryDelay = 1000 // 1秒待機
+
+    while (retryCount < maxRetries) {
+      // 待機してから確認
+      await new Promise(resolve => setTimeout(resolve, retryDelay))
+
+      const { data: verifyProfile, error: verifyError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (verifyError) {
+        retryCount++
+        continue
+      }
+
+      if (!verifyProfile) {
+        retryCount++
+        continue
+      }
+
+      if (verifyProfile.plan === plan) {
+        return verifyProfile
+      }
+
+      retryCount++
+    }
+
+    throw new Error(`プランの更新が${maxRetries}回の試行後も反映されませんでした（期待値: ${plan}）`)
   } catch (error) {
-    console.error('ユーザープラン更新中の予期せぬエラー:', error)
-    return null
+    console.error('Plan update error:', error)
+    throw error
   }
 }
 
