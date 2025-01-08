@@ -48,12 +48,6 @@ export default function Navigation() {
           {session ? (
             <>
               <Link 
-                href="/ordinances" 
-                className="text-white hover:text-background transition-colors"
-              >
-                条例一覧
-              </Link>
-              <Link 
                 href="/mypage" 
                 className="text-white hover:text-background transition-colors"
               >
