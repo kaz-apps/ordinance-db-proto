@@ -28,7 +28,7 @@ export default function Login() {
       showSnackbar(error.message, 'error')
     } else {
       showSnackbar('ログインしました', 'success')
-      router.push('/ordinances')
+      router.push('/')
     }
   }
 
