@@ -160,3 +160,29 @@ export async function updateProfile(userId: string, data: {
   }
 }
 
+export async function updatePassword(userId: string, currentPassword: string, newPassword: string) {
+  try {
+    // ユーザー情報を取得
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId)
+
+    if (userError || !user) {
+      return { success: false, error: 'ユーザーが見つかりません' }
+    }
+
+    // パスワードの更新
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { password: newPassword }
+    )
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('パスワード更新エラー:', error)
+    return { success: false, error: '予期せぬエラーが発生しました' }
+  }
+}
+

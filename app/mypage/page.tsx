@@ -9,19 +9,25 @@ import { Input } from '@/components/ui/input'
 import { supabase } from '@/app/utils/supabase'
 import { useSnackbar } from '@/contexts/SnackbarContext'
 import { type Profile } from '@/lib/types'
-import { updateProfile } from '@/app/actions/profileActions'
+import { updateProfile, updatePassword } from '@/app/actions/profileActions'
 
 export default function MyPage() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [formData, setFormData] = useState({
     companyName: '',
     departmentName: '',
     lastName: '',
     firstName: '',
     phoneNumber: '',
+  })
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   })
   const router = useRouter()
   const { showSnackbar } = useSnackbar()
@@ -191,6 +197,46 @@ export default function MyPage() {
     }
   }
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setPasswordForm(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!session?.user?.id) return
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showSnackbar('新しいパスワードと確認用パスワードが一致しません', 'error')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await updatePassword(
+        session.user.id,
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      )
+      if (result.success) {
+        showSnackbar('パスワードを更新しました。再度ログインしてください。', 'success')
+        // パスワード更新成功後にログアウトしてログインページへリダイレクト
+        await supabase.auth.signOut()
+        router.push('/login')
+      } else {
+        throw result.error
+      }
+    } catch (error) {
+      console.error('パスワード更新エラー:', error)
+      showSnackbar('パスワードの更新に失敗しました', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   if (!session || !profile) {
     return null
   }
@@ -201,13 +247,68 @@ export default function MyPage() {
       <div className="container mx-auto mt-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">マイページ</h1>
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant="outline"
-          >
-            {isEditing ? 'キャンセル' : 'プロフィールを編集'}
-          </Button>
+          <div className="space-x-2">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              variant="outline"
+            >
+              {isEditing ? 'キャンセル' : 'プロフィールを編集'}
+            </Button>
+            <Button
+              onClick={() => setIsChangingPassword(!isChangingPassword)}
+              variant="outline"
+            >
+              {isChangingPassword ? 'キャンセル' : 'パスワードを変更'}
+            </Button>
+          </div>
         </div>
+
+        {isChangingPassword && (
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md mb-8">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                現在のパスワード
+              </label>
+              <Input
+                type="password"
+                name="currentPassword"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                新しいパスワード
+              </label>
+              <Input
+                type="password"
+                name="newPassword"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                新しいパスワード（確認）
+              </label>
+              <Input
+                type="password"
+                name="confirmPassword"
+                value={passwordForm.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? '更新中...' : 'パスワードを更新'}
+            </Button>
+          </form>
+        )}
 
         {isEditing ? (
           <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
