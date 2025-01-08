@@ -5,6 +5,9 @@ export interface Profile {
   username: string;
   created_at: string;
   full_name: string | null;
+  company_name: string | null;
+  department_name: string | null;
+  phone_number: string | null;
   password: string | null;
   plan: UserPlan;
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { type Profile } from '@/app/utils/supabase'
+import { supabase } from '@/app/utils/supabase'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -126,6 +127,34 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'premium'): 
   } catch (error) {
     console.error('Plan update error:', error)
     throw error
+  }
+}
+
+export async function updateProfile(userId: string, data: {
+  companyName?: string;
+  departmentName?: string;
+  lastName?: string;
+  firstName?: string;
+  phoneNumber?: string;
+}) {
+  try {
+    const fullName = `${data.lastName || ''} ${data.firstName || ''}`.trim()
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        company_name: data.companyName,
+        department_name: data.departmentName,
+        full_name: fullName || null,
+        phone_number: data.phoneNumber,
+      })
+      .eq('id', userId)
+
+    if (error) throw error
+    return { success: true }
+  } catch (error) {
+    console.error('プロフィール更新エラー:', error)
+    return { success: false, error }
   }
 }
 

@@ -53,12 +53,6 @@ export default function Navigation() {
               >
                 マイページ
               </Link>
-              <Link 
-                href="/checkout" 
-                className="text-white hover:text-background transition-colors"
-              >
-                プラン変更
-              </Link>
               <Button 
                 onClick={handleSignOut} 
                 variant="outline"
