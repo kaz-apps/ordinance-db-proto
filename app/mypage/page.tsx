@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/app/utils/supabase'
 import { useSnackbar } from '@/contexts/SnackbarContext'
-import { type Profile } from '@/app/utils/supabase'
+import { type Profile } from '@/lib/types'
 import { updateProfile } from '@/app/actions/profileActions'
 
 export default function MyPage() {
@@ -284,17 +284,23 @@ export default function MyPage() {
           <div className="space-y-4">
             <p>メールアドレス: {session.user.email}</p>
             <p>会社名: {profile.company_name || '未設定'}</p>
-            <p>部署名: {profile.department_name || '未設定'}</p>
+            <p>部署名: {profile.department || '未設定'}</p>
             <p>氏名: {profile.full_name || '未設定'}</p>
             <p>電話番号: {profile.phone_number || '未設定'}</p>
             <p>現在のプラン: {profile.plan === 'premium' ? '有料プラン（月額15,000円）' : '無料プラン'}</p>
-            {profile.plan === 'premium' && (
+            {profile.plan === 'premium' ? (
               <Button 
                 onClick={handleUpdatePlan}
                 disabled={isLoading}
               >
                 無料プランに変更
               </Button>
+            ) : (
+              <Link href="/checkout">
+                <Button>
+                  有料プランに変更
+                </Button>
+              </Link>
             )}
           </div>
         )}

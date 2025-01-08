@@ -2,13 +2,17 @@ export type UserPlan = 'unregistered' | 'free' | 'premium';
 
 export interface Profile {
   id: string;
-  username: string;
-  created_at: string;
+  username: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   company_name: string | null;
-  department_name: string | null;
+  department: string | null;
   phone_number: string | null;
-  password: string | null;
+  avatar_url: string | null;
+  website: string | null;
   plan: UserPlan;
 }
 

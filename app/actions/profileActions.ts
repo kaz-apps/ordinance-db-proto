@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
-import { type Profile } from '@/app/utils/supabase'
+import { type Profile } from '@/lib/types'
 import { supabase } from '@/app/utils/supabase'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -138,23 +138,25 @@ export async function updateProfile(userId: string, data: {
   phoneNumber?: string;
 }) {
   try {
-    const fullName = `${data.lastName || ''} ${data.firstName || ''}`.trim()
+    const fullName = `${data.lastName || ''} ${data.firstName || ''}`.trim();
     
     const { error } = await supabase
       .from('profiles')
       .update({
         company_name: data.companyName,
-        department_name: data.departmentName,
+        department: data.departmentName,
         full_name: fullName || null,
+        first_name: data.firstName,
+        last_name: data.lastName,
         phone_number: data.phoneNumber,
       })
-      .eq('id', userId)
+      .eq('id', userId);
 
-    if (error) throw error
-    return { success: true }
+    if (error) throw error;
+    return { success: true };
   } catch (error) {
-    console.error('プロフィール更新エラー:', error)
-    return { success: false, error }
+    console.error('プロフィール更新エラー:', error);
+    return { success: false, error };
   }
 }
 
