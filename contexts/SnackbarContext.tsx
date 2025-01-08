@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { Snackbar, SnackbarType } from '@/components/ui/Snackbar';
 
-interface SnackbarContextType {
+export interface SnackbarContextType {
   showSnackbar: (message: string, type: SnackbarType) => void;
 }
 

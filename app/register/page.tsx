@@ -1,100 +1,214 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import Navigation from '@/components/Navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { supabase } from '@/app/utils/supabase'
-import { useSnackbar } from '@/contexts/SnackbarContext'
+import { Input } from "@/components/ui/input";
+import Loading from "@/components/loading";
+import { useSnackbar } from "@/contexts/SnackbarContext";
+import { SnackbarContextType } from "@/contexts/SnackbarContext";
+import { cn } from "@/lib/utils";
+import Navigation from "@/components/Navigation";
 
 export default function Register() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [privacyAccepted, setPrivacyAccepted] = useState(false)
-  const router = useRouter()
-  const { showSnackbar } = useSnackbar()
+  const { showSnackbar } = useSnackbar() as SnackbarContextType;
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    companyName: "",
+    departmentName: "",
+    lastName: "",
+    firstName: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+    passwordConfirm: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!termsAccepted || !privacyAccepted) {
-      showSnackbar('利用規約とプライバシーポリシーに同意する必要があります。', 'error')
-      return
+    e.preventDefault();
+    
+    if (formData.password !== formData.passwordConfirm) {
+      showSnackbar("パスワードが一致しません", "error");
+      return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    setLoading(true);
 
-    if (error) {
-      showSnackbar(error.message, 'error')
-    } else {
-      showSnackbar('確認メールを送信しました。メールをご確認ください。', 'success')
+    try {
+      // APIエンドポイントへのPOSTリクエスト実装
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        showSnackbar("登録が完了しました", "success");
+        // 登録成功後の処理（例：ログインページへリダイレクト）
+      } else {
+        showSnackbar("登録に失敗しました", "error");
+      }
+    } catch (error) {
+      showSnackbar("エラーが発生しました", "error");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  if (loading) return <Loading />;
 
   return (
-    <main>
+    <>
       <Navigation />
-      <div className="container mx-auto mt-8">
-        <h1 className="text-3xl font-bold mb-4">会員登録</h1>
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-          <div className="mb-4">
-            <label htmlFor="email" className="block mb-2">メールアドレス</label>
-            <Input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              会員登録
+            </h2>
           </div>
-          <div className="mb-4">
-            <label htmlFor="password" className="block mb-2">パスワード</label>
-            <Input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="terms" 
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-              />
-              <label htmlFor="terms">
-                <Link href="/terms" className="text-blue-600 hover:underline">利用規約</Link>に同意します
-              </label>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <div className="rounded-md shadow-sm space-y-4">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  会社名 <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  required
+                  name="companyName"
+                  type="text"
+                  placeholder="会社名"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  部署名 <span className="text-gray-400">(任意)</span>
+                </label>
+                <Input
+                  name="departmentName"
+                  type="text"
+                  placeholder="部署名"
+                  value={formData.departmentName}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  氏名 <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    required
+                    name="lastName"
+                    type="text"
+                    placeholder="姓"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className="placeholder:text-gray-400"
+                  />
+                  <Input
+                    required
+                    name="firstName"
+                    type="text"
+                    placeholder="名"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className="placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  メールアドレス <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  required
+                  name="email"
+                  type="email"
+                  placeholder="メールアドレス"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  電話番号 <span className="text-gray-400">(任意)</span>
+                </label>
+                <Input
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="電話番号"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  パスワード <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  required
+                  name="password"
+                  type="password"
+                  placeholder="パスワード"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                  minLength={8}
+                />
+                <p className="text-sm text-gray-500">8文字以上で入力してください</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  パスワード（確認） <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  required
+                  name="passwordConfirm"
+                  type="password"
+                  placeholder="パスワード（確認）"
+                  value={formData.passwordConfirm}
+                  onChange={handleChange}
+                  className="placeholder:text-gray-400"
+                  minLength={8}
+                />
+              </div>
+
+              
             </div>
-          </div>
-          <div className="mb-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="privacy" 
-                checked={privacyAccepted}
-                onCheckedChange={(checked) => setPrivacyAccepted(checked as boolean)}
-              />
-              <label htmlFor="privacy">
-                <Link href="/privacy" className="text-blue-600 hover:underline">プライバシーポリシー</Link>に同意します
-              </label>
+
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                登録する
+              </button>
             </div>
-          </div>
-          <Button type="submit">登録</Button>
-        </form>
+          </form>
+        </div>
       </div>
-    </main>
-  )
+    </>
+  );
 }
 
