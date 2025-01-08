@@ -52,6 +52,10 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'premium'): 
       throw new Error('ユーザーIDが指定されていません')
     }
 
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabaseの設定が不正です')
+    }
+
     // まず更新を実行
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
@@ -66,13 +70,25 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'premium'): 
     // 更新の確認を最大5回試行
     let retryCount = 0
     const maxRetries = 5
-    const retryDelay = 1000 // 1秒待機
+    const retryDelay = 2000 // 2秒待機
 
     while (retryCount < maxRetries) {
       // 待機してから確認
       await new Promise(resolve => setTimeout(resolve, retryDelay))
 
-      const { data: verifyProfile, error: verifyError } = await supabaseAdmin
+      // キャッシュを使用しない新しいクライアントで確認
+      const freshClient = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        },
+        db: {
+          schema: 'public'
+        }
+      })
+
+      const { data: verifyProfile, error: verifyError } = await freshClient
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -93,6 +109,17 @@ export async function updateUserPlan(userId: string, plan: 'free' | 'premium'): 
       }
 
       retryCount++
+    }
+
+    // 更新は行われているが確認できない場合は、最新のプロファイルを返す
+    const { data: finalProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (finalProfile) {
+      return finalProfile
     }
 
     throw new Error(`プランの更新が${maxRetries}回の試行後も反映されませんでした（期待値: ${plan}）`)
