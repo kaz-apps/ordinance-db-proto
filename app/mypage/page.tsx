@@ -9,7 +9,16 @@ import { Input } from '@/components/ui/input'
 import { supabase } from '@/app/utils/supabase'
 import { useSnackbar } from '@/contexts/SnackbarContext'
 import { type Profile } from '@/lib/types'
-import { updateProfile, updatePassword } from '@/app/actions/profileActions'
+import { updateProfile, updatePassword, deleteAccount } from '@/app/actions/profileActions'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "../../components/ui/use-toast";
 
 export default function MyPage() {
   const [session, setSession] = useState<any>(null)
@@ -31,6 +40,8 @@ export default function MyPage() {
   })
   const router = useRouter()
   const { showSnackbar } = useSnackbar()
+  const { toast } = useToast()
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // プロファイルを直接取得する関数
   const fetchProfile = async (userId: string) => {
@@ -237,17 +248,184 @@ export default function MyPage() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    const result = await deleteAccount();
+    if (result.success) {
+      toast({
+        title: "アカウントを削除しました",
+        description: "ご利用ありがとうございました。",
+      });
+      router.push("/");
+    } else {
+      toast({
+        title: "エラー",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+    setIsDeleteDialogOpen(false);
+  };
+
   if (!session || !profile) {
     return null
   }
 
   return (
-    <main>
+    <div className="mx-auto">
       <Navigation />
-      <div className="container mx-auto mt-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">マイページ</h1>
-          <div className="space-x-2">
+
+      <div className="container mx-auto">
+
+        <div className="bg-white p-6 mb-8 text-2xl font-bold mb-8">マイページ</div>
+
+        {/* プラン情報 */}
+        <div className="bg-white p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">プラン情報</h2>
+          <p className="mb-4">現在のプラン: {profile?.plan === 'premium' ? 'プレミアムプラン' : '無料プラン'}</p>
+          {profile?.plan === 'premium' ? (
+            <Button onClick={handleUpdatePlan} disabled={isLoading}>
+              無料プランに変更する
+            </Button>
+          ) : (
+            <Link href="/checkout">
+              <Button>プレミアムプランに変更する</Button>
+            </Link>
+          )}
+        </div>
+
+        {/* 会員情報 */}
+        <div className="bg-white p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold">会員情報</h2>
+          </div>
+
+          {isChangingPassword ? (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md mb-8">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  現在のパスワード
+                </label>
+                <Input
+                  type="password"
+                  name="currentPassword"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  新しいパスワード
+                </label>
+                <Input
+                  type="password"
+                  name="newPassword"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  新しいパスワード（確認）
+                </label>
+                <Input
+                  type="password"
+                  name="confirmPassword"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
+              </div>
+
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? '更新中...' : 'パスワードを更新'}
+              </Button>
+            </form>
+          ) : isEditing ? (
+            <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  会社名
+                </label>
+                <Input
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="会社名"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部署名
+                </label>
+                <Input
+                  name="departmentName"
+                  value={formData.departmentName}
+                  onChange={handleChange}
+                  placeholder="部署名"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    姓
+                  </label>
+                  <Input
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="姓"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    名
+                  </label>
+                  <Input
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    placeholder="名"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  電話番号
+                </label>
+                <Input
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  placeholder="電話番号"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? '更新中...' : '更新する'}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <p>メールアドレス: {session.user.email}</p>
+              <p>会社名: {profile.company_name || '未設定'}</p>
+              <p>部署名: {profile.department || '未設定'}</p>
+              <p>氏名: {profile.full_name || '未設定'}</p>
+              <p>電話番号: {profile.phone_number || '未設定'}</p>
+            </div>
+          )}
+
+          <div className="space-x-2 mt-4">
             <Button
               onClick={() => setIsEditing(!isEditing)}
               variant="outline"
@@ -263,150 +441,19 @@ export default function MyPage() {
           </div>
         </div>
 
-        {isChangingPassword && (
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md mb-8">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                現在のパスワード
-              </label>
-              <Input
-                type="password"
-                name="currentPassword"
-                value={passwordForm.currentPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
+        {/* アカウント設定リンク */}
+        <div className="bg-white p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">アカウント設定</h2>
+          <Link href="/account-settings">
+            <Button variant="outline">アカウント設定へ</Button>
+          </Link>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                新しいパスワード
-              </label>
-              <Input
-                type="password"
-                name="newPassword"
-                value={passwordForm.newPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                新しいパスワード（確認）
-              </label>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </div>
-
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? '更新中...' : 'パスワードを更新'}
-            </Button>
-          </form>
-        )}
-
-        {isEditing ? (
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                会社名
-              </label>
-              <Input
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                placeholder="会社名"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                部署名
-              </label>
-              <Input
-                name="departmentName"
-                value={formData.departmentName}
-                onChange={handleChange}
-                placeholder="部署名"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  姓
-                </label>
-                <Input
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="姓"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  名
-                </label>
-                <Input
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="名"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                電話番号
-              </label>
-              <Input
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                placeholder="電話番号"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? '更新中...' : '更新する'}
-            </Button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <p>メールアドレス: {session.user.email}</p>
-            <p>会社名: {profile.company_name || '未設定'}</p>
-            <p>部署名: {profile.department || '未設定'}</p>
-            <p>氏名: {profile.full_name || '未設定'}</p>
-            <p>電話番号: {profile.phone_number || '未設定'}</p>
-            <p>現在のプラン: {profile.plan === 'premium' ? '有料プラン（月額15,000円）' : '無料プラン'}</p>
-            {profile.plan === 'premium' ? (
-              <Button 
-                onClick={handleUpdatePlan}
-                disabled={isLoading}
-              >
-                無料プランに変更
-              </Button>
-            ) : (
-              <Link href="/checkout">
-                <Button>
-                  有料プランに変更
-                </Button>
-              </Link>
-            )}
-          </div>
-        )}
+        
       </div>
-    </main>
+      
+
+    </div>
   )
 }
 

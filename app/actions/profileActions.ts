@@ -186,3 +186,21 @@ export async function updatePassword(userId: string, currentPassword: string, ne
   }
 }
 
+export async function deleteAccount() {
+  try {
+    const response = await fetch("/api/delete-account", {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Failed to delete account");
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return { error: "アカウントの削除に失敗しました" };
+  }
+}
+
